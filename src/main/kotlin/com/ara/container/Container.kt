@@ -23,11 +23,7 @@ class Container {
     }
 
     fun <T: Any> resolveOrNull(clazz: KClass<T>): T? {
-        return (values[clazz] ?: providers[clazz]?.let {
-            val value = it.get()
-            values[clazz] = value
-            value
-        }) as T?
+        return (values.get(clazz) ?: providers[clazz]?.let { values.putIfAbsent(clazz) { it.get() } }) as T?
     }
 }
 
@@ -39,4 +35,7 @@ inline fun <reified T: Any, V: T> Container.register(provider: Provider<V>): Con
 }
 inline fun <reified T: Any> Container.resolve(): T {
     return this.resolve(T::class)
+}
+inline fun <reified T: Any> Container.resolveOrNull(): T? {
+    return this.resolveOrNull(T::class)
 }
