@@ -9,7 +9,7 @@ import kotlin.reflect.full.superclasses
 class ConcurrentContainer : Container {
     private val values: MutableMap<KClass<*>, Any> = ConcurrentHashMap()
     private val providers: MutableMap<KClass<*>, Provider<*>> = ConcurrentHashMap()
-    private val classRelations: MutableMap<KClass<*>, MutableSet<KClass<*>>> = ConcurrentHashMap()
+    private val classRelations: MutableMap<KClass<*>, MutableSet<ClassRelation<*>>> = ConcurrentHashMap()
 
     override val size: Int
         get() = values.size
@@ -55,16 +55,16 @@ class ConcurrentContainer : Container {
     }
 
     private fun <T : Any> calculateRelations(clazz: KClass<T>) {
-        getOrCreateSubclassSet(clazz)
-        clazz.superclasses.forEach {
-            getOrCreateSubclassSet(it)
-                .add(clazz)
+        getOrCreateClassRelations(clazz)
+        clazz.superclasses.forEachIndexed { i, superClass ->
+            getOrCreateClassRelations(superClass)
+                .add(ClassRelation(clazz, i + 1))
         }
     }
 
-    private fun <T : Any> getOrCreateSubclassSet(clazz: KClass<T>): MutableSet<KClass<*>> {
-        val set = classRelations.getOrPut(clazz) { Collections.newSetFromMap(ConcurrentHashMap()) }
-        set.add(clazz)
+    private fun <T : Any> getOrCreateClassRelations(clazz: KClass<T>): MutableSet<ClassRelation<*>> {
+        val set = classRelations.getOrPut(clazz) { Collections.synchronizedSortedSet(TreeSet { a, b -> a.diff - b.diff }) }
+        set.add(ClassRelation(clazz, 0))
         return set
     }
 
@@ -74,8 +74,8 @@ class ConcurrentContainer : Container {
     }
 
     override fun <T : Any> resolveOrNull(clazz: KClass<T>): T? {
-        return classRelations[clazz]?.let { subclasses ->
-            for (subclass in subclasses) {
+        return classRelations[clazz]?.let { classRelations ->
+            for ((subclass) in classRelations) {
                 val value = exactlyResolveOrNull(subclass)
                 if (value != null) {
                     return@let value
