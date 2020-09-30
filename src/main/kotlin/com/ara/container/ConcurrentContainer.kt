@@ -18,24 +18,27 @@ class ConcurrentContainer : Container {
         get() = providers.size
 
     override fun <T : Any> unregisterAll(clazz: KClass<T>): Container {
-        unregister(clazz)
-        unregisterProvider(clazz)
+        values.remove(clazz)
+        providers.remove(clazz)
+        unregisterClassRelations(clazz)
         return this
     }
 
     override fun <T : Any> unregister(clazz: KClass<T>): Container {
         values.remove(clazz)
+        unregisterClassRelations(clazz)
         return this
     }
 
     override fun <T : Any> unregisterProvider(clazz: KClass<T>): Container {
         providers.remove(clazz)
+        unregisterClassRelations(clazz)
         return this
     }
 
     override fun <T : Any, V : T> register(clazz: KClass<T>, value: V): Container {
         values[clazz] = value
-        calculateRelations(clazz)
+        registerClassRelations(clazz)
         return this
     }
 
@@ -50,11 +53,17 @@ class ConcurrentContainer : Container {
 
     override fun <T : Any, V : T> registerProvider(clazz: KClass<T>, provider: Provider<V>): Container {
         providers[clazz] = provider
-        calculateRelations(clazz)
+        registerClassRelations(clazz)
         return this
     }
 
-    private fun <T : Any> calculateRelations(clazz: KClass<T>) {
+    private fun <T : Any> unregisterClassRelations(clazz: KClass<T>) {
+        classRelations.forEach { (_, classRelations) ->
+            classRelations.removeIf { it.clazz === clazz }
+        }
+    }
+
+    private fun <T : Any> registerClassRelations(clazz: KClass<T>) {
         getOrCreateClassRelations(clazz)
         clazz.superclasses.forEachIndexed { i, superClass ->
             getOrCreateClassRelations(superClass)
@@ -63,7 +72,11 @@ class ConcurrentContainer : Container {
     }
 
     private fun <T : Any> getOrCreateClassRelations(clazz: KClass<T>): MutableSet<ClassRelation<*>> {
-        val set = classRelations.getOrPut(clazz) { Collections.synchronizedSortedSet(TreeSet { a, b -> a.diff - b.diff }) }
+        val set = classRelations.getOrPut(clazz) {
+            Collections.synchronizedSortedSet(TreeSet { a, b ->
+                a.diff - b.diff
+            })
+        }
         set.add(ClassRelation(clazz, 0))
         return set
     }
