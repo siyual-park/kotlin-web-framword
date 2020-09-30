@@ -5,32 +5,17 @@ import kotlin.reflect.KClass
 
 @Suppress("UNCHECKED_CAST")
 class ConcurrentContainer : Container {
-    private val values: MutableMap<KClass<*>, Any> = ConcurrentHashMap()
-    private val providers: MutableMap<KClass<*>, Provider<*>> = ConcurrentHashMap()
-
-    override val size: Int
-        get() = values.size
-
-    override val providerSize: Int
-        get() = providers.size
+    private val singletons: MutableMap<KClass<*>, Any> = ConcurrentHashMap()
+    private val providers: MutableMap<KClass<*>, LifecycleContainer<Provider<*>>> = ConcurrentHashMap()
 
     override fun <T : Any> unregister(clazz: KClass<T>): Container {
-        values.remove(clazz)
+        singletons.remove(clazz)
         providers.remove(clazz)
         return this
     }
 
-    override fun <T : Any> register(clazz: KClass<T>, provider: Container.() -> T): Container {
-        val container = this
-        return register(clazz, object : Provider<T> {
-            override fun get(): T {
-                return provider(container)
-            }
-        })
-    }
-
-    override fun <T : Any> register(clazz: KClass<T>, provider: Provider<in T>): Container {
-        providers[clazz] = provider
+    override fun <T : Any> register(clazz: KClass<T>, lifecycle: Lifecycle, provider: Provider<in T>): Container {
+        providers[clazz] = LifecycleContainer(provider, lifecycle)
         return this
     }
 
@@ -39,17 +24,12 @@ class ConcurrentContainer : Container {
     }
 
     override fun <T : Any> resolveOrNull(clazz: KClass<T>): T? {
-        val value = values[clazz]
-        if (value != null) {
-            return value as T
-        }
-        val provider = providers[clazz]
-        if (provider != null) {
-            val newValue = provider.get()
-            values.putIfAbsent(clazz, provider.get())
-            return newValue as T
-        }
-        return null
+        return providers[clazz]?.let { (provider, lifecycle) ->
+            when (lifecycle) {
+                Lifecycle.PreRequest -> provider.get()
+                Lifecycle.Singleton -> singletons.getOrPut(clazz) { provider.get() }
+            }
+        } as T?
     }
 
     companion object {
