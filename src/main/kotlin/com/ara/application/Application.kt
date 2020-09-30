@@ -9,14 +9,6 @@ import com.ara.runner.Runner
 class Application<IN : Any, OUT : Any>(
     private val container: Container = ConcurrentContainer.create()
 ) : Runner<IN, OUT>, Container by container {
-    fun use(module: (Container) -> Unit): Application<IN, OUT> {
-        return use(object : Module {
-            override fun configure(container: Container) {
-                module(container)
-            }
-        })
-    }
-
     fun use(module: Module): Application<IN, OUT> {
         module.configure(this)
         return this
@@ -26,4 +18,12 @@ class Application<IN : Any, OUT : Any>(
         val runner: Runner<IN, OUT> = resolve()
         return runner.run(input)
     }
+}
+
+fun <IN : Any, OUT : Any> Application<IN, OUT>.use(module: (Container) -> Unit): Application<IN, OUT> {
+    return use(object : Module {
+        override fun configure(container: Container) {
+            module(container)
+        }
+    })
 }

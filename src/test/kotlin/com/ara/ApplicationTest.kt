@@ -1,6 +1,7 @@
 package com.ara
 
 import com.ara.application.Application
+import com.ara.application.use
 import com.ara.container.resolve
 import com.ara.container.single
 import com.ara.mock.Controller
