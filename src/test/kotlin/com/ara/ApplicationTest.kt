@@ -2,6 +2,7 @@ package com.ara
 
 import com.ara.application.Application
 import com.ara.application.use
+import com.ara.container.inject
 import com.ara.container.resolve
 import com.ara.container.single
 import com.ara.mock.Controller
@@ -19,7 +20,7 @@ class ApplicationTest {
             it.single { Controller(resolve()) }
             it.single<Runner<Array<Int>, Int>> {
                 object : Runner<Array<Int>, Int> {
-                    private val controller: Controller = resolve()
+                    private val controller: Controller by inject()
 
                     override fun run(input: Array<Int>): Int {
                         return controller.add(input)

@@ -49,6 +49,14 @@ inline fun <T : Any> Container.register(
     })
 }
 
+inline fun <reified T : Any> Container.inject(): Lazy<T> {
+    return this.inject(T::class)
+}
+
+fun <T : Any> Container.inject(clazz: KClass<T>): Lazy<T> {
+    return lazy { this.resolve(clazz) }
+}
+
 inline fun <reified T : Any> Container.resolve(): T {
     return this.resolve(T::class)
 }
