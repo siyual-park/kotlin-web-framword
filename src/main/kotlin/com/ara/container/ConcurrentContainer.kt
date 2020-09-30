@@ -9,7 +9,7 @@ import kotlin.reflect.full.superclasses
 class ConcurrentContainer : Container {
     private val values: MutableMap<KClass<*>, Any> = ConcurrentHashMap()
     private val providers: MutableMap<KClass<*>, Provider<*>> = ConcurrentHashMap()
-    private val subclassRelations: MutableMap<KClass<*>, MutableSet<KClass<*>>> = ConcurrentHashMap()
+    private val classRelations: MutableMap<KClass<*>, MutableSet<KClass<*>>> = ConcurrentHashMap()
 
     override val size: Int
         get() = values.size
@@ -35,7 +35,7 @@ class ConcurrentContainer : Container {
 
     override fun <T : Any, V : T> register(clazz: KClass<T>, value: V): Container {
         values[clazz] = value
-        registerClass(clazz)
+        calculateRelations(clazz)
         return this
     }
 
@@ -50,28 +50,36 @@ class ConcurrentContainer : Container {
 
     override fun <T : Any, V : T> registerProvider(clazz: KClass<T>, provider: Provider<V>): Container {
         providers[clazz] = provider
-        registerClass(clazz)
+        calculateRelations(clazz)
         return this
     }
 
-    private fun <T : Any> registerClass(clazz: KClass<T>) {
-        subclassRelations.getOrPut(clazz) { Collections.newSetFromMap(ConcurrentHashMap()) }
-            .add(clazz)
-
+    private fun <T : Any> calculateRelations(clazz: KClass<T>) {
+        getOrCreateSubclassSet(clazz)
         clazz.superclasses.forEach {
-            subclassRelations.getOrPut(it) { Collections.newSetFromMap(ConcurrentHashMap()) }
+            getOrCreateSubclassSet(it)
                 .add(clazz)
         }
     }
+
+    private fun <T : Any> getOrCreateSubclassSet(clazz: KClass<T>): MutableSet<KClass<*>> {
+        val set = classRelations.getOrPut(clazz) { Collections.newSetFromMap(ConcurrentHashMap()) }
+        set.add(clazz)
+        return set
+    }
+
 
     override fun <T : Any> resolve(clazz: KClass<T>): T {
         return resolveOrNull(clazz) ?: throw RuntimeException("Cant resolve $clazz")
     }
 
     override fun <T : Any> resolveOrNull(clazz: KClass<T>): T? {
-        return subclassRelations[clazz]?.let { subclasses ->
+        return classRelations[clazz]?.let { subclasses ->
             for (subclass in subclasses) {
-                return@let exactlyResolve(subclass)
+                val value = exactlyResolveOrNull(subclass)
+                if (value != null) {
+                    return@let value
+                }
             }
             return@let null
         } as T?
