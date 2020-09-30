@@ -14,37 +14,22 @@ class ConcurrentContainer : Container {
     override val providerSize: Int
         get() = providers.size
 
-    override fun <T : Any> unregisterAll(clazz: KClass<T>): Container {
-        unregister(clazz)
-        unregisterProvider(clazz)
-        return this
-    }
-
     override fun <T : Any> unregister(clazz: KClass<T>): Container {
         values.remove(clazz)
-        return this
-    }
-
-    override fun <T : Any> unregisterProvider(clazz: KClass<T>): Container {
         providers.remove(clazz)
         return this
     }
 
-    override fun <T : Any> register(clazz: KClass<T>, value: T): Container {
-        values[clazz] = value
-        return this
-    }
-
-    override fun <T : Any> registerProvider(clazz: KClass<T>, provider: Container.() -> T): Container {
+    override fun <T : Any> register(clazz: KClass<T>, provider: Container.() -> T): Container {
         val container = this
-        return registerProvider(clazz, object : Provider<T> {
+        return register(clazz, object : Provider<T> {
             override fun get(): T {
                 return provider(container)
             }
         })
     }
 
-    override fun <T : Any> registerProvider(clazz: KClass<T>, provider: Provider<in T>): Container {
+    override fun <T : Any> register(clazz: KClass<T>, provider: Provider<in T>): Container {
         providers[clazz] = provider
         return this
     }

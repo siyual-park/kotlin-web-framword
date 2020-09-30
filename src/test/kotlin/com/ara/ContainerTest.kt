@@ -1,7 +1,7 @@
 package com.ara
 
 import com.ara.container.ConcurrentContainer
-import com.ara.container.registerProvider
+import com.ara.container.register
 import com.ara.container.resolve
 import com.ara.container.resolveOrNull
 import com.ara.mock.Controller
@@ -14,8 +14,8 @@ class ContainerTest {
     @Test
     fun testRegister() {
         val container = ConcurrentContainer.create()
-        container.registerProvider { Service() }
-        container.registerProvider { Controller(resolve()) }
+        container.register { Service() }
+        container.register { Controller(resolve()) }
 
         assertEquals(container.size, 0)
         assertEquals(container.providerSize, 2)
@@ -24,8 +24,8 @@ class ContainerTest {
     @Test
     fun testResolve() {
         val container = ConcurrentContainer.create()
-        container.registerProvider { Service() }
-        container.registerProvider { Controller(resolve()) }
+        container.register { Service() }
+        container.register { Controller(resolve()) }
 
         val controller: Controller? = container.resolveOrNull()
 
@@ -37,8 +37,8 @@ class ContainerTest {
     @Test
     fun testUnRegister() {
         val container = ConcurrentContainer.create()
-        container.registerProvider { Service() }
-        container.registerProvider { Controller(resolve()) }
+        container.register { Service() }
+        container.register { Controller(resolve()) }
 
         container.unregisterAll(Service::class)
         container.unregisterAll(Controller::class)

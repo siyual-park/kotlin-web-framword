@@ -1,7 +1,7 @@
 package com.ara
 
 import com.ara.application.Application
-import com.ara.container.registerProvider
+import com.ara.container.register
 import com.ara.container.resolve
 import com.ara.mock.Controller
 import com.ara.mock.Service
@@ -14,9 +14,9 @@ class ApplicationTest {
     fun test() {
         val application = Application<Array<Int>, Int>()
         application.use {
-            it.registerProvider { Service() }
-            it.registerProvider { Controller(resolve()) }
-            it.registerProvider<Runner<Array<Int>, Int>> {
+            it.register { Service() }
+            it.register { Controller(resolve()) }
+            it.register<Runner<Array<Int>, Int>> {
                 object : Runner<Array<Int>, Int> {
                     private val controller: Controller = resolve()
 
