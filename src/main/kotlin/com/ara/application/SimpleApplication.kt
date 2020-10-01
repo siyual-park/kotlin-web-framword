@@ -7,9 +7,9 @@ import com.ara.runner.Runner
 
 class SimpleApplication<IN : Any, OUT : Any>(
         context: Container = ConcurrentContainer()
-) : Application<IN, OUT, Container>(context) {
+) : Application<IN, OUT, Container>(context), Container by context {
     override fun run(input: IN): OUT {
-        val runner: Runner<IN, OUT> = context.resolve()
+        val runner: Runner<IN, OUT> = resolve()
         return runner.run(input)
     }
 }
