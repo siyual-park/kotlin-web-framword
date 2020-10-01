@@ -1,7 +1,7 @@
 package com.ara
 
-import com.ara.application.Application
-import com.ara.application.use
+import com.ara.application.SimpleApplication
+import com.ara.application.install
 import com.ara.container.inject
 import com.ara.container.resolve
 import com.ara.container.single
@@ -14,11 +14,11 @@ import kotlin.test.assertEquals
 class ApplicationTest {
     @Test
     fun test() {
-        val application = Application<Array<Int>, Int>()
-        application.use {
-            it.single { Service() }
-            it.single { Controller(resolve()) }
-            it.single<Runner<Array<Int>, Int>> {
+        val application = SimpleApplication<Array<Int>, Int>()
+        application.install {
+            single { Service() }
+            single { Controller(resolve()) }
+            single<Runner<Array<Int>, Int>> {
                 object : Runner<Array<Int>, Int> {
                     private val controller: Controller by inject()
 

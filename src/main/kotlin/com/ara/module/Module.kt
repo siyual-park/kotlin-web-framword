@@ -1,7 +1,5 @@
 package com.ara.module
 
-import com.ara.container.Container
-
-interface Module {
-    fun configure(container: Container)
+interface Module<CONTEXT : Any> {
+    fun configure(context: CONTEXT)
 }

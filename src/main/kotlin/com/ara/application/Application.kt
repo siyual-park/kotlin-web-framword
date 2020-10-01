@@ -1,29 +1,21 @@
 package com.ara.application
 
-import com.ara.container.ConcurrentContainer
-import com.ara.container.Container
-import com.ara.container.resolve
 import com.ara.module.Module
 import com.ara.runner.Runner
 
-class Application<IN : Any, OUT : Any>(
-    private val container: Container = ConcurrentContainer.create()
-) : Runner<IN, OUT>, Container by container {
-    fun use(module: Module): Application<IN, OUT> {
-        module.configure(this)
+abstract class Application<IN : Any, OUT : Any, CONTEXT : Any>(
+        protected val context: CONTEXT
+) : Runner<IN, OUT> {
+    fun install(module: Module<CONTEXT>): Application<IN, OUT, CONTEXT> {
+        module.configure(context)
         return this
-    }
-
-    override fun run(input: IN): OUT {
-        val runner: Runner<IN, OUT> = resolve()
-        return runner.run(input)
     }
 }
 
-fun <IN : Any, OUT : Any> Application<IN, OUT>.use(module: (Container) -> Unit): Application<IN, OUT> {
-    return use(object : Module {
-        override fun configure(container: Container) {
-            module(container)
+fun <IN : Any, OUT : Any, CONTEXT : Any> Application<IN, OUT, CONTEXT>.install(module: CONTEXT.() -> Unit): Application<IN, OUT, CONTEXT> {
+    return install(object : Module<CONTEXT> {
+        override fun configure(context: CONTEXT) {
+            module(context)
         }
     })
 }
